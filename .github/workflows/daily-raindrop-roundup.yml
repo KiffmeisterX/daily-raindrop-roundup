@@ -27,5 +27,5 @@ jobs:
         WP_PASSWORD: ${{ secrets.WP_PASSWORD }}
       run: |
 
-        # Run the script
+        # Run the script 
         php daily_roundup.php
