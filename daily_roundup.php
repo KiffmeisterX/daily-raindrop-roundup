@@ -261,7 +261,7 @@ function publishToWordPressWithCookie($title, $content) {
 /**
  * Test WordPress connection
  */
-function testWordPressConnection() {
+function testBasicWordPressConnectivity() {
     try {
         echo "Testing WordPress login...\n";
         $cookie_file = getWordPressCookie();
