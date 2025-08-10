@@ -1,0 +1,35 @@
+name: Daily Raindrop Roundup
+
+on:
+  schedule:
+    # Runs daily at 2 PM Eastern (6 PM UTC)
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  roundup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: curl, json
+        
+    - name: Run daily roundup
+      env:
+        RAINDROP_ACCESS_TOKEN: ${{ secrets.RAINDROP_ACCESS_TOKEN }}
+        WP_USERNAME: ${{ secrets.WP_USERNAME }}
+        WP_PASSWORD: ${{ secrets.WP_PASSWORD }}
+      run: |
+        # Update script with environment variables
+        sed -i "s/your_access_token_here/$RAINDROP_ACCESS_TOKEN/g" daily_roundup.php
+        sed -i "s/your_wordpress_username/$WP_USERNAME/g" daily_roundup.php
+        sed -i "s/your_wordpress_password/$WP_PASSWORD/g" daily_roundup.php
+        
+        # Run the script
+        php daily_roundup.php
