@@ -308,11 +308,11 @@ function runDailyRoundup($force = false, $test = false) {
         
         // Test WordPress connection if requested
         if ($test) {
-            return testWordPressConnection();
+            return testBasicWordPressConnectivity();
         }
         
         // Test WordPress connection first
-        if (!testWordPressConnection()) {
+        if (!testBasicWordPressConnectivity()) {
             return;
         }
         
