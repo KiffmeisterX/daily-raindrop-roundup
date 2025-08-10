@@ -261,25 +261,6 @@ function publishToWordPressWithCookie($title, $content) {
 /**
  * Test WordPress connection
  */
-function testBasicWordPressConnectivity() {
-    try {
-        echo "Testing WordPress login...\n";
-        $cookie_file = getWordPressCookie();
-        
-        echo "✅ WordPress login successful!\n";
-        
-        // Clean up
-        if (file_exists($cookie_file)) {
-            unlink($cookie_file);
-        }
-        
-        return true;
-        
-    } catch (Exception $e) {
-        echo "❌ WordPress connection test failed: " . $e->getMessage() . "\n";
-        return false;
-    }
-}
 
 /**
  * Get last run date
