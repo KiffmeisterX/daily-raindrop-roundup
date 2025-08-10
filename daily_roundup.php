@@ -270,13 +270,6 @@ function runDailyRoundup($force = false, $test = false) {
         echo "=== Kiffmeister's Daily Roundup Script (Cookie Auth Version) ===\n";
         echo "Starting at: " . date('Y-m-d H:i:s') . "\n\n";
         
-        // Check if credentials are configured
-        if (WP_PASSWORD === 'your_wordpress_password') {
-            echo "⚠️  WordPress credentials not configured!\n";
-            echo "Please update WP_USERNAME and WP_PASSWORD with your actual WordPress login.\n\n";
-            return;
-        }
-        
         if (RAINDROP_ACCESS_TOKEN === 'your_access_token_here') {
             echo "⚠️  Raindrop access token not configured!\n";
             echo "Please update RAINDROP_ACCESS_TOKEN with your actual token.\n\n";
