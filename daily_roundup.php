@@ -109,6 +109,42 @@ function formatBookmarksForPost($bookmarks) {
 }
 
 /**
+ * Test basic WordPress connectivity (no auth)
+ */
+function testBasicWordPressConnectivity() {
+    echo "Testing basic WordPress connectivity...\n";
+    
+    $test_url = WP_SITE_URL . '/wp-json/wp/v2/posts?per_page=1';
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $test_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'GitHub-Actions-Bot');
+    
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+    
+    echo "HTTP Code: $http_code\n";
+    echo "Response length: " . strlen($response) . " bytes\n";
+    
+    if ($error) {
+        echo "Connection error: $error\n";
+        return false;
+    }
+    
+    if ($http_code === 200) {
+        echo "✅ Basic WordPress REST API accessible from GitHub!\n";
+        return true;
+    } else {
+        echo "❌ WordPress blocked GitHub Actions (HTTP $http_code)\n";
+        return false;
+    }
+}
+
+/**
  * Get WordPress authentication cookie
  */
 function getWordPressCookie() {
