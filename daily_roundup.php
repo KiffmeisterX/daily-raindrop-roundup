@@ -9,11 +9,11 @@
 // ========================================
 
 // Raindrop.io credentials
-define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: '2b73c6e7-964e-4959-b30a-c4a613ca5a1c');
+define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: 'placeholder');
 
 // Blogger credentials
-define('BLOGGER_API_KEY', getenv('BLOGGER_API_KEY') ?: 'AIzaSyBFA0JURGkI-4-f4LThWVRbUQLf9FSsBxQ');
-define('BLOGGER_BLOG_ID', '8452170067331693828');
+define('BLOGGER_API_KEY', getenv('BLOGGER_API_KEY') ?: 'placeholder');
+define('BLOGGER_BLOG_ID', 'placeholder');
 
 // Roundup settings
 define('TARGET_TAG', 'DFC');
