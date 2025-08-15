@@ -9,7 +9,7 @@
 // ========================================
 
 // Raindrop.io credentials
-define('RAINDROP_ACCESS_TOKEN', '2b73c6e7-964e-4959-b30a-c4a613ca5a1c');
+define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: '2b73c6e7-964e-4959-b30a-c4a613ca5a1c');
 
 // Blogger credentials
 define('BLOGGER_API_KEY', 'AIzaSyBFA0JURGkI-4-f4LThWVRbUQLf9FSsBxQ');
