@@ -1,7 +1,7 @@
 <?php
 /**
- * Kiffmeister's Daily Raindrop to WordPress Roundup (Final REST API Attempt)
- * Fetches bookmarks with #DFC tag and publishes to WordPress
+ * Kiffmeister's Daily Raindrop to Blogger Roundup
+ * Fetches bookmarks with #DFC tag and publishes to Blogger
  */
 
 // ========================================
@@ -9,17 +9,15 @@
 // ========================================
 
 // Raindrop.io credentials
-define('RAINDROP_ACCESS_TOKEN', '5274fb6c-af04-474f-9dd1-3255a94f3548');
+define('RAINDROP_ACCESS_TOKEN', '2b73c6e7-964e-4959-b30a-c4a613ca5a1c');
 
-// WordPress credentials
-define('WP_SITE_URL', 'https://kiffmeister.com');
-define('WP_USERNAME', 'kiffmeister');
-define('WP_PASSWORD', 'AH;2n8<8Y0v;rHZE8[pv');
+// Blogger credentials
+define('BLOGGER_API_KEY', 'AIzaSyBFA0JURGkI-4-f4LThWVRbUQLf9FSsBxQ');
+define('BLOGGER_BLOG_ID', '8452170067331693828');
 
 // Roundup settings
 define('TARGET_TAG', 'DFC');
 define('POST_TITLE', "Kiffmeister's Global Digital Money News Digest");
-define('POST_CATEGORY', 1); // Category ID (1 = Uncategorized)
 
 // File to track last run date
 define('LAST_RUN_FILE', 'last_roundup_date.txt');
@@ -80,9 +78,9 @@ function fetchRaindropBookmarks($tag, $since_date = null) {
 }
 
 /**
- * Format bookmarks for WordPress post
+ * Format bookmarks for Blogger post (HTML)
  */
-function formatBookmarksForPost($bookmarks) {
+function formatBookmarksForBlogger($bookmarks) {
     if (empty($bookmarks)) {
         return '';
     }
@@ -109,158 +107,92 @@ function formatBookmarksForPost($bookmarks) {
 }
 
 /**
- * Test basic WordPress connectivity (no auth)
+ * Test Blogger API connection
  */
-function testBasicWordPressConnectivity() {
-    echo "Testing basic WordPress connectivity...\n";
+function testBloggerConnection() {
+    try {
+        echo "Testing Blogger API connection...\n";
+        
+        // Test by getting blog info
+        $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID . "?key=" . BLOGGER_API_KEY;
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Daily-Roundup-Bot/1.0');
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            throw new Exception("Connection error: $error");
+        }
+        
+        if ($http_code !== 200) {
+            throw new Exception("Blogger API error ($http_code): $response");
+        }
+        
+        $blog_data = json_decode($response, true);
+        
+        if (isset($blog_data['name'])) {
+            echo "✅ Connected to blog: " . $blog_data['name'] . "\n";
+            return true;
+        } else {
+            throw new Exception("Invalid blog response");
+        }
+        
+    } catch (Exception $e) {
+        echo "❌ Blogger connection test failed: " . $e->getMessage() . "\n";
+        return false;
+    }
+}
+
+/**
+ * Publish post to Blogger
+ */
+function publishToBlogger($title, $content) {
+    $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID . "/posts?key=" . BLOGGER_API_KEY;
     
-    $test_url = WP_SITE_URL . '/wp-json/wp/v2/posts?per_page=1';
+    $post_data = [
+        'title' => $title,
+        'content' => $content
+    ];
     
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $test_url);
+    curl_setopt($ch, CURLOPT_URL, $api_url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'User-Agent: Daily-Roundup-Bot/1.0'
+    ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'GitHub-Actions-Bot');
     
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);
     
-    echo "HTTP Code: $http_code\n";
-    echo "Response length: " . strlen($response) . " bytes\n";
-    
     if ($error) {
-        echo "Connection error: $error\n";
-        return false;
+        throw new Exception("Connection error: $error");
     }
     
-    if ($http_code === 200) {
-        echo "✅ Basic WordPress REST API accessible from GitHub!\n";
-        return true;
-    } else {
-        echo "❌ WordPress blocked GitHub Actions (HTTP $http_code)\n";
-        return false;
+    if ($http_code !== 200 && $http_code !== 201) {
+        throw new Exception("Blogger API error ($http_code): $response");
     }
+    
+    $post_response = json_decode($response, true);
+    
+    if (!isset($post_response['url'])) {
+        throw new Exception("Invalid post response: $response");
+    }
+    
+    return $post_response;
 }
-
-/**
- * Get WordPress authentication cookie
- */
-function getWordPressCookie() {
-    $login_url = WP_SITE_URL . '/wp-login.php';
-    
-    $login_data = [
-        'log' => WP_USERNAME,
-        'pwd' => WP_PASSWORD,
-        'wp-submit' => 'Log In',
-        'redirect_to' => WP_SITE_URL . '/wp-admin/',
-        'testcookie' => '1'
-    ];
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $login_url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($login_data));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/wp_cookies.txt');
-    curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/wp_cookies.txt');
-    
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($http_code !== 200) {
-        throw new Exception("WordPress login failed: $http_code");
-    }
-    
-    // Check if login was successful by looking for admin content
-    if (strpos($response, 'wp-admin') === false && strpos($response, 'dashboard') === false) {
-        throw new Exception("WordPress login failed: Invalid credentials");
-    }
-    
-    return '/tmp/wp_cookies.txt';
-}
-
-/**
- * Publish post to WordPress using cookie authentication
- */
-function publishToWordPressWithCookie($title, $content) {
-    try {
-        // Get authentication cookie
-        echo "Getting WordPress authentication cookie...\n";
-        $cookie_file = getWordPressCookie();
-        
-        // Get WordPress nonce
-        echo "Getting WordPress nonce...\n";
-        $admin_url = WP_SITE_URL . '/wp-admin/post-new.php';
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $admin_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
-        
-        $admin_response = curl_exec($ch);
-        curl_close($ch);
-        
-        // Extract nonce from the page
-        preg_match('/name="_wpnonce" value="([^"]+)"/', $admin_response, $nonce_matches);
-        if (empty($nonce_matches[1])) {
-            throw new Exception("Could not extract WordPress nonce");
-        }
-        $nonce = $nonce_matches[1];
-        
-        // Now use REST API with cookie authentication
-        echo "Publishing post via REST API with cookie...\n";
-        $wp_url = WP_SITE_URL . '/wp-json/wp/v2/posts';
-        
-        $post_data = [
-            'title' => $title,
-            'content' => $content,
-            'status' => 'publish',
-            'categories' => [POST_CATEGORY]
-        ];
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $wp_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'X-WP-Nonce: ' . $nonce
-        ]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
-        
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        // Clean up cookie file
-        if (file_exists($cookie_file)) {
-            unlink($cookie_file);
-        }
-        
-        if ($http_code !== 201) {
-            throw new Exception("WordPress REST API error ($http_code): $response");
-        }
-        
-        $post_data = json_decode($response, true);
-        return $post_data;
-        
-    } catch (Exception $e) {
-        // Clean up cookie file on error
-        if (isset($cookie_file) && file_exists($cookie_file)) {
-            unlink($cookie_file);
-        }
-        throw $e;
-    }
-}
-
-/**
- * Test WordPress connection
- */
 
 /**
  * Get last run date
@@ -284,16 +216,16 @@ function updateLastRunDate() {
  */
 function runDailyRoundup($force = false, $test = false) {
     try {
-        echo "=== Kiffmeister's Daily Roundup Script (Cookie Auth Version) ===\n";
+        echo "=== Kiffmeister's Daily Roundup Script (Blogger Version) ===\n";
         echo "Starting at: " . date('Y-m-d H:i:s') . "\n\n";
         
-        // Test WordPress connection if requested
+        // Test Blogger connection if requested
         if ($test) {
-            return testBasicWordPressConnectivity();
+            return testBloggerConnection();
         }
         
-        // Test WordPress connection first
-        if (!testBasicWordPressConnectivity()) {
+        // Test Blogger connection first
+        if (!testBloggerConnection()) {
             return;
         }
         
@@ -316,16 +248,16 @@ function runDailyRoundup($force = false, $test = false) {
         echo "Found " . count($bookmarks) . " bookmark(s)\n";
         
         // Format content
-        $post_content = formatBookmarksForPost($bookmarks);
+        $post_content = formatBookmarksForBlogger($bookmarks);
         $post_title = POST_TITLE . " - " . date('F j, Y');
         
         echo "Publishing post: $post_title\n";
         
-        // Publish to WordPress
-        $result = publishToWordPressWithCookie($post_title, $post_content);
+        // Publish to Blogger
+        $result = publishToBlogger($post_title, $post_content);
         
         echo "✅ Post published successfully!\n";
-        echo "Post URL: " . $result['link'] . "\n";
+        echo "Post URL: " . $result['url'] . "\n";
         echo "Post ID: " . $result['id'] . "\n";
         
         // Update last run date
@@ -345,10 +277,14 @@ $force = isset($argv[1]) && $argv[1] === '--force';
 $test = isset($argv[1]) && $argv[1] === '--test';
 
 if ($test) {
-    echo "Running CONNECTION TEST mode\n\n";
+    echo "Running BLOGGER CONNECTION TEST mode\n\n";
 } elseif ($force) {
     echo "Running in FORCE mode (will post even if no new bookmarks)\n\n";
 }
+
+// Run the roundup
+runDailyRoundup($force, $test);
+?>
 
 // Run the roundup
 runDailyRoundup($force, $test);
