@@ -23,7 +23,9 @@ jobs:
     - name: Run daily roundup
       env:
         RAINDROP_ACCESS_TOKEN: ${{ secrets.RAINDROP_ACCESS_TOKEN }}
-        BLOGGER_API_KEY: ${{ secrets.BLOGGER_API_KEY }}
+        BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+        BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+        BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
       run: |
        
         # Run the script
