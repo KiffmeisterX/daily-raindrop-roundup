@@ -1,6 +1,6 @@
 <?php
 /**
- * Kiffmeister's Daily Raindrop to Blogger Roundup
+ * Kiffmeister's Daily Raindrop to Blogger Roundup (OAuth Version)
  * Fetches bookmarks with #DFC tag and publishes to Blogger
  */
 
@@ -11,8 +11,10 @@
 // Raindrop.io credentials
 define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: 'your_access_token_here');
 
-// Blogger credentials
-define('BLOGGER_API_KEY', getenv('BLOGGER_API_KEY') ?: 'your_google_api_key_here');
+// Blogger OAuth credentials
+define('BLOGGER_CLIENT_ID', getenv('BLOGGER_CLIENT_ID') ?: 'your_client_id_here');
+define('BLOGGER_CLIENT_SECRET', getenv('BLOGGER_CLIENT_SECRET') ?: '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');
+define('BLOGGER_REFRESH_TOKEN', getenv('BLOGGER_REFRESH_TOKEN') ?: 'your_refresh_token_here');
 define('BLOGGER_BLOG_ID', '8452170067331693828');
 
 // Roundup settings
@@ -107,20 +109,66 @@ function formatBookmarksForBlogger($bookmarks) {
 }
 
 /**
- * Test Blogger API connection
+ * Get fresh access token using refresh token
+ */
+function getBloggerAccessToken() {
+    $token_url = 'https://oauth2.googleapis.com/token';
+    
+    $token_data = [
+        'client_id' => BLOGGER_CLIENT_ID,
+        'client_secret' => BLOGGER_CLIENT_SECRET,
+        'refresh_token' => BLOGGER_REFRESH_TOKEN,
+        'grant_type' => 'refresh_token'
+    ];
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $token_url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($token_data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/x-www-form-urlencoded'
+    ]);
+    
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($http_code !== 200) {
+        throw new Exception("OAuth token refresh failed ($http_code): $response");
+    }
+    
+    $token_data = json_decode($response, true);
+    
+    if (!isset($token_data['access_token'])) {
+        throw new Exception("No access token in response: $response");
+    }
+    
+    return $token_data['access_token'];
+}
+
+/**
+ * Test Blogger OAuth connection
  */
 function testBloggerConnection() {
     try {
-        echo "Testing Blogger API connection...\n";
+        echo "Testing Blogger OAuth connection...\n";
+        
+        // Get access token
+        $access_token = getBloggerAccessToken();
+        echo "✅ OAuth token refreshed successfully\n";
         
         // Test by getting blog info
-        $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID . "?key=" . BLOGGER_API_KEY;
+        $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $api_url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Daily-Roundup-Bot/1.0');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $access_token,
+            'User-Agent: Daily-Roundup-Bot/1.0'
+        ]);
         
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -151,10 +199,13 @@ function testBloggerConnection() {
 }
 
 /**
- * Publish post to Blogger
+ * Publish post to Blogger using OAuth
  */
 function publishToBlogger($title, $content) {
-    $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID . "/posts?key=" . BLOGGER_API_KEY;
+    // Get fresh access token
+    $access_token = getBloggerAccessToken();
+    
+    $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID . "/posts";
     
     $post_data = [
         'title' => $title,
@@ -167,6 +218,7 @@ function publishToBlogger($title, $content) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
+        'Authorization: Bearer ' . $access_token,
         'User-Agent: Daily-Roundup-Bot/1.0'
     ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -195,6 +247,22 @@ function publishToBlogger($title, $content) {
 }
 
 /**
+ * Generate OAuth authorization URL for setup
+ */
+function generateOAuthURL() {
+    $auth_url = 'https://accounts.google.com/o/oauth2/auth?' . http_build_query([
+        'client_id' => BLOGGER_CLIENT_ID,
+        'redirect_uri' => 'http://localhost:8080/callback',
+        'scope' => 'https://www.googleapis.com/auth/blogger',
+        'response_type' => 'code',
+        'access_type' => 'offline',
+        'prompt' => 'consent'
+    ]);
+    
+    return $auth_url;
+}
+
+/**
  * Get last run date
  */
 function getLastRunDate() {
@@ -214,10 +282,26 @@ function updateLastRunDate() {
 /**
  * Main execution function
  */
-function runDailyRoundup($force = false, $test = false) {
+function runDailyRoundup($force = false, $test = false, $setup = false) {
     try {
-        echo "=== Kiffmeister's Daily Roundup Script (Blogger Version) ===\n";
+        echo "=== Kiffmeister's Daily Roundup Script (Blogger OAuth Version) ===\n";
         echo "Starting at: " . date('Y-m-d H:i:s') . "\n\n";
+        
+        // Setup mode - generate OAuth URL
+        if ($setup) {
+            echo "🔧 SETUP MODE: OAuth Authorization Required\n\n";
+            echo "Step 1: Visit this URL to authorize the application:\n";
+            echo generateOAuthURL() . "\n\n";
+            echo "Step 2: After authorization, you'll get a code. Use that code to get a refresh token.\n";
+            return;
+        }
+        
+        // Check if refresh token is configured
+        if (BLOGGER_REFRESH_TOKEN === 'your_refresh_token_here') {
+            echo "⚠️  Blogger OAuth not configured!\n";
+            echo "Run with --setup flag to get authorization URL.\n\n";
+            return;
+        }
         
         // Test Blogger connection if requested
         if ($test) {
@@ -275,17 +359,16 @@ function runDailyRoundup($force = false, $test = false) {
 // Check command line arguments
 $force = isset($argv[1]) && $argv[1] === '--force';
 $test = isset($argv[1]) && $argv[1] === '--test';
+$setup = isset($argv[1]) && $argv[1] === '--setup';
 
-if ($test) {
+if ($setup) {
+    echo "Running OAUTH SETUP mode\n\n";
+} elseif ($test) {
     echo "Running BLOGGER CONNECTION TEST mode\n\n";
 } elseif ($force) {
     echo "Running in FORCE mode (will post even if no new bookmarks)\n\n";
 }
 
 // Run the roundup
-runDailyRoundup($force, $test);
-?>
-
-// Run the roundup
-runDailyRoundup($force, $test);
+runDailyRoundup($force, $test, $setup);
 ?>
