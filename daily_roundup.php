@@ -13,7 +13,7 @@ define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: 'your_access_
 
 // Blogger OAuth credentials
 define('BLOGGER_CLIENT_ID', getenv('BLOGGER_CLIENT_ID') ?: 'your_client_id_here');
-define('BLOGGER_CLIENT_SECRET', getenv('BLOGGER_CLIENT_SECRET') ?: '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');
+define('BLOGGER_CLIENT_SECRET', getenv('BLOGGER_CLIENT_SECRET') ?: 'your_client_secret_here');
 define('BLOGGER_REFRESH_TOKEN', getenv('BLOGGER_REFRESH_TOKEN') ?: 'your_refresh_token_here');
 define('BLOGGER_BLOG_ID', '8452170067331693828');
 
