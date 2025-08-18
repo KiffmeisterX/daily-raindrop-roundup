@@ -30,7 +30,7 @@ jobs:
         php daily_roundup.php
         
     - name: Upload HTML file
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: daily-roundup-html
         path: daily_roundup_*.html
