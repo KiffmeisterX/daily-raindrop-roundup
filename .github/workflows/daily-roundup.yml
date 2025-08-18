@@ -27,11 +27,9 @@ jobs:
         BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
         BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
       run: |
-       
-        # Run the script
         php daily_roundup.php
-
-      - name: Upload HTML file
+        
+    - name: Upload HTML file
       uses: actions/upload-artifact@v3
       with:
         name: daily-roundup-html
