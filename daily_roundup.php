@@ -1,7 +1,7 @@
 <?php
 /**
- * Kiffmeister's Daily Raindrop to Blogger Roundup (OAuth Version)
- * Fetches bookmarks with #DFC tag and publishes to Blogger
+ * Kiffmeister's Daily Raindrop to HTML File Generator
+ * Fetches bookmarks with #DFC tag and creates formatted HTML file
  */
 
 // ========================================
@@ -10,12 +10,6 @@
 
 // Raindrop.io credentials
 define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: 'your_access_token_here');
-
-// Blogger OAuth credentials
-define('BLOGGER_CLIENT_ID', getenv('BLOGGER_CLIENT_ID') ?: 'your_client_id_here');
-define('BLOGGER_CLIENT_SECRET', getenv('BLOGGER_CLIENT_SECRET') ?: 'your_client_secret_here');
-define('BLOGGER_REFRESH_TOKEN', getenv('BLOGGER_REFRESH_TOKEN') ?: 'your_refresh_token_here');
-define('BLOGGER_BLOG_ID', '8452170067331693828');
 
 // Roundup settings
 define('TARGET_TAG', 'DFC');
@@ -80,186 +74,232 @@ function fetchRaindropBookmarks($tag, $since_date = null) {
 }
 
 /**
- * Format bookmarks for Blogger post (HTML)
+ * Generate beautiful HTML content for blog post
  */
-function formatBookmarksForBlogger($bookmarks) {
+function generateBlogPostHTML($bookmarks, $title) {
+    $date = date('F j, Y');
+    $count = count($bookmarks);
+    
+    $html = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$title - $date</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background: #fafafa;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .meta {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .intro {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .bookmark {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+            background: #f8f9fa;
+            border-radius: 0 5px 5px 0;
+        }
+        .bookmark h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .bookmark h3 a {
+            color: #2980b9;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .bookmark h3 a:hover {
+            color: #3498db;
+            text-decoration: underline;
+        }
+        .bookmark p {
+            margin: 10px 0 0 0;
+            color: #555;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #bdc3c7;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .copy-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+        .copy-button:hover {
+            background: #2980b9;
+        }
+        .blog-content {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            background: #fff;
+            border-radius: 5px;
+        }
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Daily Roundup Generated Successfully!</h1>
+        
+        <div class="instructions">
+            <strong>📋 Ready to Copy!</strong> The formatted blog post content is below. 
+            Simply copy everything in the gray box and paste it into your blog editor.
+        </div>
+        
+        <button class="copy-button" onclick="copyContent()">📋 Copy Blog Post Content</button>
+        
+        <div class="blog-content" id="blogContent">
+HTML;
+
+    // Add the actual blog post content
+    $html .= "<h2>$title - $date</h2>\n\n";
+    
     if (empty($bookmarks)) {
-        return '';
-    }
-    
-    $content = "<p>Here are today's curated links on digital finance and CBDCs:</p>\n\n";
-    
-    foreach ($bookmarks as $bookmark) {
-        $title = htmlspecialchars($bookmark['title']);
-        $url = htmlspecialchars($bookmark['link']);
-        $note = !empty($bookmark['note']) ? htmlspecialchars($bookmark['note']) : '';
+        $html .= "<p>No new bookmarks found with the #" . TARGET_TAG . " tag since the last run.</p>\n";
+    } else {
+        $html .= "<p>Here are today's $count curated links on digital finance and CBDCs:</p>\n\n";
         
-        $content .= "<h3><a href=\"{$url}\" target=\"_blank\">{$title}</a></h3>\n";
-        
-        if ($note) {
-            $content .= "<p>{$note}</p>\n";
+        foreach ($bookmarks as $bookmark) {
+            $title = htmlspecialchars($bookmark['title']);
+            $url = htmlspecialchars($bookmark['link']);
+            $note = !empty($bookmark['note']) ? htmlspecialchars($bookmark['note']) : '';
+            
+            $html .= "<h3><a href=\"$url\" target=\"_blank\">$title</a></h3>\n";
+            
+            if ($note) {
+                $html .= "<p>$note</p>\n";
+            }
+            
+            $html .= "\n";
         }
         
-        $content .= "\n";
+        $html .= "<hr>\n<p><em>Curated from my <a href=\"https://raindrop.io\" target=\"_blank\">Raindrop.io</a> bookmarks</em></p>\n";
     }
     
-    $content .= "<hr>\n<p><em>Curated from my <a href=\"https://raindrop.io\" target=\"_blank\">Raindrop.io</a> bookmarks</em></p>";
+    $html .= <<<HTML
+        </div>
+        
+        <div class="footer">
+            <p><strong>What to do next:</strong></p>
+            <ol style="text-align: left; display: inline-block;">
+                <li>Click the "Copy Blog Post Content" button above</li>
+                <li>Go to your blog editor (WordPress, Blogger, etc.)</li>
+                <li>Paste the content into a new post</li>
+                <li>Publish!</li>
+            </ol>
+            <p>Generated automatically by Daily Roundup Script • $date</p>
+        </div>
+    </div>
     
-    return $content;
+    <script>
+        function copyContent() {
+            const content = document.getElementById('blogContent');
+            const range = document.createRange();
+            range.selectNode(content);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const button = document.querySelector('.copy-button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '✅ Copied!';
+                button.style.background = '#27ae60';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#3498db';
+                }, 2000);
+            } catch (err) {
+                alert('Please manually select and copy the content in the gray box.');
+            }
+            
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>
+HTML;
+
+    return $html;
 }
 
 /**
- * Get fresh access token using refresh token
+ * Save HTML file as artifact for download
  */
-function getBloggerAccessToken() {
-    $token_url = 'https://oauth2.googleapis.com/token';
+function saveHTMLFile($html, $filename) {
+    file_put_contents($filename, $html);
+    echo "✅ HTML file generated: $filename\n";
+    echo "📁 File size: " . number_format(strlen($html)) . " bytes\n";
     
-    $token_data = [
-        'client_id' => BLOGGER_CLIENT_ID,
-        'client_secret' => BLOGGER_CLIENT_SECRET,
-        'refresh_token' => BLOGGER_REFRESH_TOKEN,
-        'grant_type' => 'refresh_token'
-    ];
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $token_url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($token_data));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/x-www-form-urlencoded'
-    ]);
-    
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($http_code !== 200) {
-        throw new Exception("OAuth token refresh failed ($http_code): $response");
-    }
-    
-    $token_data = json_decode($response, true);
-    
-    if (!isset($token_data['access_token'])) {
-        throw new Exception("No access token in response: $response");
-    }
-    
-    return $token_data['access_token'];
+    // For GitHub Actions, we can make the file available as an artifact
+    // The file will be in the workspace and can be downloaded
+    echo "🔗 File saved to workspace for download\n";
 }
 
 /**
- * Test Blogger OAuth connection
+ * Test Raindrop connection
  */
-function testBloggerConnection() {
+function testRaindropConnection() {
     try {
-        echo "Testing Blogger OAuth connection...\n";
+        echo "Testing Raindrop.io connection...\n";
         
-        // Get access token
-        $access_token = getBloggerAccessToken();
-        echo "✅ OAuth token refreshed successfully\n";
+        // Test by getting a few recent bookmarks
+        $bookmarks = fetchRaindropBookmarks(TARGET_TAG, date('Y-m-d', strtotime('-7 days')));
         
-        // Test by getting blog info
-        $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID;
+        echo "✅ Connected to Raindrop.io successfully!\n";
+        echo "📚 Found " . count($bookmarks) . " bookmarks with #" . TARGET_TAG . " tag in the last 7 days\n";
         
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $api_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $access_token,
-            'User-Agent: Daily-Roundup-Bot/1.0'
-        ]);
-        
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($error) {
-            throw new Exception("Connection error: $error");
-        }
-        
-        if ($http_code !== 200) {
-            throw new Exception("Blogger API error ($http_code): $response");
-        }
-        
-        $blog_data = json_decode($response, true);
-        
-        if (isset($blog_data['name'])) {
-            echo "✅ Connected to blog: " . $blog_data['name'] . "\n";
-            return true;
-        } else {
-            throw new Exception("Invalid blog response");
-        }
+        return true;
         
     } catch (Exception $e) {
-        echo "❌ Blogger connection test failed: " . $e->getMessage() . "\n";
+        echo "❌ Raindrop connection test failed: " . $e->getMessage() . "\n";
         return false;
     }
-}
-
-/**
- * Publish post to Blogger using OAuth
- */
-function publishToBlogger($title, $content) {
-    // Get fresh access token
-    $access_token = getBloggerAccessToken();
-    
-    $api_url = "https://www.googleapis.com/blogger/v3/blogs/" . BLOGGER_BLOG_ID . "/posts";
-    
-    $post_data = [
-        'title' => $title,
-        'content' => $content
-    ];
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $api_url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $access_token,
-        'User-Agent: Daily-Roundup-Bot/1.0'
-    ]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
-    
-    if ($error) {
-        throw new Exception("Connection error: $error");
-    }
-    
-    if ($http_code !== 200 && $http_code !== 201) {
-        throw new Exception("Blogger API error ($http_code): $response");
-    }
-    
-    $post_response = json_decode($response, true);
-    
-    if (!isset($post_response['url'])) {
-        throw new Exception("Invalid post response: $response");
-    }
-    
-    return $post_response;
-}
-
-/**
- * Generate OAuth authorization URL for setup
- */
-function generateOAuthURL() {
-    $auth_url = 'https://accounts.google.com/o/oauth2/auth?' . http_build_query([
-        'client_id' => BLOGGER_CLIENT_ID,
-        'redirect_uri' => 'http://localhost:8080/callback',
-        'scope' => 'https://www.googleapis.com/auth/blogger',
-        'response_type' => 'code',
-        'access_type' => 'offline',
-        'prompt' => 'consent'
-    ]);
-    
-    return $auth_url;
 }
 
 /**
@@ -282,34 +322,18 @@ function updateLastRunDate() {
 /**
  * Main execution function
  */
-function runDailyRoundup($force = false, $test = false, $setup = false) {
+function runDailyRoundup($force = false, $test = false) {
     try {
-        echo "=== Kiffmeister's Daily Roundup Script (Blogger OAuth Version) ===\n";
+        echo "=== Kiffmeister's Daily Roundup Script (HTML Generator Version) ===\n";
         echo "Starting at: " . date('Y-m-d H:i:s') . "\n\n";
         
-        // Setup mode - generate OAuth URL
-        if ($setup) {
-            echo "🔧 SETUP MODE: OAuth Authorization Required\n\n";
-            echo "Step 1: Visit this URL to authorize the application:\n";
-            echo generateOAuthURL() . "\n\n";
-            echo "Step 2: After authorization, you'll get a code. Use that code to get a refresh token.\n";
-            return;
-        }
-        
-        // Check if refresh token is configured
-        if (BLOGGER_REFRESH_TOKEN === 'your_refresh_token_here') {
-            echo "⚠️  Blogger OAuth not configured!\n";
-            echo "Run with --setup flag to get authorization URL.\n\n";
-            return;
-        }
-        
-        // Test Blogger connection if requested
+        // Test Raindrop connection if requested
         if ($test) {
-            return testBloggerConnection();
+            return testRaindropConnection();
         }
         
-        // Test Blogger connection first
-        if (!testBloggerConnection()) {
+        // Test Raindrop connection first
+        if (!testRaindropConnection()) {
             return;
         }
         
@@ -325,24 +349,22 @@ function runDailyRoundup($force = false, $test = false, $setup = false) {
         $bookmarks = fetchRaindropBookmarks(TARGET_TAG, $since_date);
         
         if (empty($bookmarks) && !$force) {
-            echo "✅ No new bookmarks found. No post needed.\n";
-            return;
+            echo "✅ No new bookmarks found. Generating empty roundup file.\n";
+            $bookmarks = []; // Generate file anyway to show it works
+        } else {
+            echo "Found " . count($bookmarks) . " bookmark(s)\n";
         }
         
-        echo "Found " . count($bookmarks) . " bookmark(s)\n";
-        
-        // Format content
-        $post_content = formatBookmarksForBlogger($bookmarks);
+        // Generate content
         $post_title = POST_TITLE . " - " . date('F j, Y');
+        $html_content = generateBlogPostHTML($bookmarks, $post_title);
         
-        echo "Publishing post: $post_title\n";
+        // Save HTML file
+        $filename = 'daily_roundup_' . date('Y-m-d') . '.html';
+        saveHTMLFile($html_content, $filename);
         
-        // Publish to Blogger
-        $result = publishToBlogger($post_title, $post_content);
-        
-        echo "✅ Post published successfully!\n";
-        echo "Post URL: " . $result['url'] . "\n";
-        echo "Post ID: " . $result['id'] . "\n";
+        echo "🎉 Daily roundup HTML file generated successfully!\n";
+        echo "📋 Copy the content from the HTML file to your blog\n";
         
         // Update last run date
         updateLastRunDate();
@@ -359,16 +381,13 @@ function runDailyRoundup($force = false, $test = false, $setup = false) {
 // Check command line arguments
 $force = isset($argv[1]) && $argv[1] === '--force';
 $test = isset($argv[1]) && $argv[1] === '--test';
-$setup = isset($argv[1]) && $argv[1] === '--setup';
 
-if ($setup) {
-    echo "Running OAUTH SETUP mode\n\n";
-} elseif ($test) {
-    echo "Running BLOGGER CONNECTION TEST mode\n\n";
+if ($test) {
+    echo "Running RAINDROP CONNECTION TEST mode\n\n";
 } elseif ($force) {
-    echo "Running in FORCE mode (will post even if no new bookmarks)\n\n";
+    echo "Running in FORCE mode (will generate file even if no new bookmarks)\n\n";
 }
 
 // Run the roundup
-runDailyRoundup($force, $test, $setup);
+runDailyRoundup($force, $test);
 ?>
