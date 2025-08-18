@@ -29,13 +29,7 @@ jobs:
       run: |
         php daily_roundup.php
         
-    - name: Upload HTML file
-      uses: actions/upload-artifact@v4
-      with:
-        name: daily-roundup-html
-        path: daily_roundup_*.html
-        
-- name: Email HTML file
+    - name: Email HTML file
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
@@ -47,3 +41,9 @@ jobs:
         from: ${{ secrets.EMAIL_USERNAME }}
         body: "Your daily roundup HTML file is attached. Open it in a browser and copy the content to your blog."
         attachments: daily_roundup_*.html
+        
+    - name: Upload HTML file
+      uses: actions/upload-artifact@v4
+      with:
+        name: daily-roundup-html
+        path: daily_roundup_*.html
