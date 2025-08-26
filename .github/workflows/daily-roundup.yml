@@ -2,21 +2,22 @@ name: Daily Raindrop Roundup
 
 on:
   schedule:
-    # Runs daily at 2 PM Eastern (6 PM UTC)
     - cron: '0 18 * * *'
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   roundup:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: write  # Needed to commit timestamp file
+      contents: write
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -36,10 +37,10 @@ jobs:
         server_port: 587
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "Daily Roundup - ${{ github.event.repository.name }} - $(date +'%B %d, %Y')"
+        subject: "Daily Roundup - $(date +'%B %d, %Y')"
         to: ${{ secrets.EMAIL_TO }}
         from: ${{ secrets.EMAIL_USERNAME }}
-        body: "Your daily roundup for $(date +'%B %d, %Y') is attached. Open it in a browser and copy the content to your blog."
+        body: "Your daily roundup for $(date +'%B %d, %Y') is attached."
         attachments: daily_roundup_*.html
         
     - name: Upload HTML file
