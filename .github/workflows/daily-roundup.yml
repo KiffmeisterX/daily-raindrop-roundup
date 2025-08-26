@@ -9,14 +9,16 @@ jobs:
   roundup:
     runs-on: ubuntu-latest
     
-    permissions:
-      contents: write
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      
+    - name: Cache timestamp
+      uses: actions/cache@v3
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        path: last_roundup_timestamp.txt
+        key: timestamp-${{ github.run_number }}
+        restore-keys: timestamp-
         
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
