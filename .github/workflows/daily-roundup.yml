@@ -10,6 +10,9 @@ jobs:
   roundup:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write  # Needed to commit timestamp file
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -23,9 +26,6 @@ jobs:
     - name: Run daily roundup
       env:
         RAINDROP_ACCESS_TOKEN: ${{ secrets.RAINDROP_ACCESS_TOKEN }}
-        BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
-        BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
-        BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
       run: |
         php daily_roundup.php
         
@@ -36,10 +36,10 @@ jobs:
         server_port: 587
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "Daily Roundup - ${{ github.run_id }}"
+        subject: "Daily Roundup - ${{ github.event.repository.name }} - $(date +'%B %d, %Y')"
         to: ${{ secrets.EMAIL_TO }}
         from: ${{ secrets.EMAIL_USERNAME }}
-        body: "Your daily roundup HTML file is attached. Open it in a browser and copy the content to your blog."
+        body: "Your daily roundup for $(date +'%B %d, %Y') is attached. Open it in a browser and copy the content to your blog."
         attachments: daily_roundup_*.html
         
     - name: Upload HTML file
