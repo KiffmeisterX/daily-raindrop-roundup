@@ -158,21 +158,8 @@ function updateLastRunTimestamp() {
 }
 
 function commitTimestampFile() {
-    // Only commit if we're in GitHub Actions
-    if (getenv('GITHUB_ACTIONS')) {
-        echo "DEBUG: Committing timestamp file to repository...\n";
-        
-        // Configure git
-        exec('git config --local user.email "action@github.com"');
-        exec('git config --local user.name "GitHub Action"');
-        
-        // Add and commit the timestamp file
-        exec('git add ' . LAST_RUN_FILE);
-        exec('git diff --staged --quiet || git commit -m "Update last run timestamp [skip ci]"');
-        exec('git push');
-        
-        echo "DEBUG: Timestamp file committed successfully\n";
-    }
+    // GitHub Actions cache will handle persistence
+    echo "DEBUG: Timestamp file saved for next run via GitHub cache\n";
 }
 
 /**
