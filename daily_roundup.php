@@ -7,7 +7,7 @@
 // Configuration - uses environment variables from GitHub Actions
 define('RAINDROP_ACCESS_TOKEN', getenv('RAINDROP_ACCESS_TOKEN') ?: 'your_access_token_here');
 define('TARGET_TAG', 'DFC'); // Change this to your tag (without #)
-define('POST_TITLE', "Your Blog Title Here"); // Customize your post title
+define('POST_TITLE', "Digital Fiat Currency Developments"); // Customize your post title
 define('LAST_RUN_FILE', 'last_roundup_timestamp.txt');
 
 /**
