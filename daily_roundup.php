@@ -88,7 +88,7 @@ body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding
     if (empty($bookmarks)) {
         $html .= "<p>No new bookmarks found with the #" . TARGET_TAG . " tag since the last update.</p>\n";
     } else {
-        $html .= "<p>Here are today's $count curated links:</p>\n\n";
+        $html .= "<p>Here are today's $count digital fiat currency developments:</p>\n\n";
         
         foreach ($bookmarks as $bookmark) {
             $title = htmlspecialchars($bookmark['title']);
